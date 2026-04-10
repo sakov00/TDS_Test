@@ -12,8 +12,7 @@ namespace _Project.Scripts.GameObjects.UnitControllers
     {
         [Inject] private EffectsPool _effectsPool;
         
-        private ParticleSystem.Particle[] _particles = new ParticleSystem.Particle[1];
-        private float _timeOffsetTakeDamage = 0.95f;
+        private int _delay = 150;
         
         public override void AttackAim()
         {
@@ -27,30 +26,15 @@ namespace _Project.Scripts.GameObjects.UnitControllers
         
         public override async UniTask AttackAnimationEvent()
         {
-            var effectModel = _effectsPool.Get(EffectType.AcidProjectile, Model.SpawnPointProjectile.position);
-            effectModel.Effect.Play();
+            var effectController = _effectsPool.Get(EffectType.AcidProjectile, Model.SpawnPointProjectile.position);
+            effectController.Effect.Play();
             
-            await UniTask.Delay((int)(effectModel.Effect.main.duration * 1000f * _timeOffsetTakeDamage),
+            await UniTask.Delay((int)(effectController.Effect.main.duration * 1000f),
                 cancellationToken: this.GetCancellationTokenOnDestroy());
 
-            effectModel.Effect.GetParticles(_particles);
-            var particle = _particles[0];
+            await UniTask.Delay(_delay);
             
-            var worldPos = effectModel.Effect.main.simulationSpace switch
-            {
-                ParticleSystemSimulationSpace.Local =>
-                    effectModel.Effect.transform.TransformPoint(particle.position),
-
-                ParticleSystemSimulationSpace.World =>
-                    particle.position,
-
-                ParticleSystemSimulationSpace.Custom =>
-                    effectModel.Effect.main.customSimulationSpace.TransformPoint(particle.position),
-
-                _ => particle.position
-            };
-            
-            Model.Player.TakeDamage(worldPos);
+            Model.Player.TakeDamage(effectController.LastPosition);
         }
     }
 }
